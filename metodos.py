@@ -1,98 +1,187 @@
-import customtkinter as ctk  # Importa la librería para la interfaz gráfica moderna.
-from tkinter import messagebox  # Importa el módulo para mostrar alertas de error.
-import numpy as np  # Importa la librería para manejo de arreglos y cálculos.
-from scipy.interpolate import lagrange, interp1d  # Importa las funciones matemáticas de interpolación.
-import matplotlib.pyplot as plt  # Importa el módulo para generar las gráficas.
+import customtkinter as ctk  # Librería para crear interfaces gráficas modernas.
+from tkinter import messagebox  # Permite mostrar mensajes de error o advertencia.
+import numpy as np  # Librería para trabajar con arreglos y cálculos numéricos.
+from scipy.interpolate import lagrange, interp1d  # Métodos de interpolación.
+import matplotlib.pyplot as plt  # Librería para generar gráficas.
 
-ctk.set_appearance_mode("System")  # Configura el tema visual según el sistema operativo.
+ctk.set_appearance_mode("System")  # Ajusta el tema visual automáticamente.
 
-class App(ctk.CTk):  # Define la clase principal heredando de la ventana de CustomTkinter.
-    def __init__(self):  # Método que inicializa la aplicación al crear el objeto.
-        super().__init__()  # Inicializa la clase padre para configurar la ventana.
-        self.title("Calculadora de Interpolación")  # Define el texto de la barra de título.
-        self.geometry("400x650")  # Establece el tamaño inicial de la ventana en píxeles.
+class App(ctk.CTk):  # Clase principal de la aplicación.
+    def __init__(self):  # Constructor de la ventana.
+        super().__init__()
+        self.title("Calculadora de Interpolación")  # Título de la ventana.
+        self.geometry("420x700")  # Tamaño de la ventana.
 
-        ctk.CTkLabel(self, text="Valores de las x (separados por ,): ").pack(pady=5)  # Texto indicativo para el eje X.
-        self.entry_x = ctk.CTkEntry(self, width=250)  # Campo de texto para capturar los datos de X.
-        self.entry_x.pack()  # Ubica el campo de texto en la interfaz.
+        # ===== ENTRADAS =====
 
-        ctk.CTkLabel(self, text="Valores de las f(x) (separados por ,): ").pack(pady=5)  # Esto hace lo mismo que la línea 14, pero para f(x).
-        self.entry_y = ctk.CTkEntry(self, width=250)  # Esto hace lo mismo que la línea 15, pero para los datos de Y.
-        self.entry_y.pack()  # Esto hace lo mismo que la línea 16.
+        ctk.CTkLabel(self, text="Valores de X (separados por ,):").pack(pady=5)
+        self.entry_x = ctk.CTkEntry(self, width=250)  # Entrada para valores X.
+        self.entry_x.pack()
 
-        ctk.CTkLabel(self, text="Valor a buscar: ").pack(pady=5)  # Esto hace lo mismo que la línea 14, pero para el objetivo.
-        self.entry_target = ctk.CTkEntry(self, width=150)  # Crea un campo más pequeño para el valor a interpolar.
-        self.entry_target.pack()  # Esto hace lo mismo que la línea 16.
+        ctk.CTkLabel(self, text="Valores de f(x) (separados por ,):").pack(pady=5)
+        self.entry_y = ctk.CTkEntry(self, width=250)  # Entrada para valores Y.
+        self.entry_y.pack()
 
-        self.switch_inv = ctk.CTkSwitch(self, text="¿Invertir variables?")  # Interruptor para intercambiar ejes X e Y.
-        self.switch_inv.pack(pady=10)  # Ubica el interruptor con margen vertical.
+        ctk.CTkLabel(self, text="Valor a buscar:").pack(pady=5)
+        self.entry_target = ctk.CTkEntry(self, width=150)  # Valor objetivo.
+        self.entry_target.pack()
 
-        self.menu_op = ctk.CTkOptionMenu(self, values=["Lineal", "Cuadrática", "Lagrange"])  # Menú desplegable para elegir el algoritmo.
-        self.menu_op.pack(pady=10)  # Esto hace lo mismo que la línea 27.
+        ctk.CTkLabel(self, text="Valor exacto de f(x) (opcional):").pack(pady=5)
+        self.entry_exact = ctk.CTkEntry(self, width=150)  # Para calcular error.
+        self.entry_exact.pack()
 
-        self.check_graficar = ctk.CTkCheckBox(self, text="¿Grafica?")  # Casilla para decidir si se muestra la ventana de Matplotlib.
-        self.check_graficar.pack(pady=10)  # Esto hace lo mismo que la línea 27.
+        # Interruptor para interpolación inversa
+        self.switch_inv = ctk.CTkSwitch(self, text="Interpolación inversa")
+        self.switch_inv.pack(pady=10)
 
-        self.btn_calc = ctk.CTkButton(self, text="Calcular", command=self.calcular)  # Botón que dispara la función de cálculo.
-        self.btn_calc.pack(pady=10)  # Esto hace lo mismo que la línea 27.
+        # ===== MENÚ DE OPCIONES =====
 
-        self.result_label = ctk.CTkLabel(self, text="Resultado: ", font=("Arial", 16, "bold"))  # Etiqueta para mostrar el valor final.
-        self.result_label.pack(pady=10)  # Esto hace lo mismo que la línea 27.
+        self.menu_op = ctk.CTkOptionMenu(
+            self,
+            values=[
+                "Lineal",
+                "Cuadrática",
+                "Lagrange 1er grado",
+                "Lagrange 2do grado"
+            ]
+        )
+        self.menu_op.pack(pady=10)
 
-    def calcular(self):  # Define el proceso principal de lógica matemática.
-        try:  # Inicia bloque para capturar errores de entrada de usuario.
-            x_str = self.entry_x.get().split(',')  # Convierte el texto de X en una lista separada por comas.
-            y_str = self.entry_y.get().split(',')  # Esto hace lo mismo que la línea 41, pero para Y.
+        # Checkbox para mostrar gráfica
+        self.check_graficar = ctk.CTkCheckBox(self, text="Mostrar gráfica")
+        self.check_graficar.pack(pady=10)
 
-            if len(x_str) != len(y_str):  # Verifica que ambas listas tengan la misma cantidad de datos.
-                messagebox.showerror("Error", "X y f(x) deben tener igual longitud.")  # Muestra aviso si los datos están incompletos.
-                return  # Detiene la ejecución si hay error de longitud.
+        # Botón de cálculo
+        self.btn_calc = ctk.CTkButton(self, text="Calcular", command=self.calcular)
+        self.btn_calc.pack(pady=10)
 
-            val_a = np.array([float(i) for i in x_str])  # Convierte la lista de texto X en números decimales.
-            val_b = np.array([float(i) for i in y_str])  # Esto hace lo mismo que la línea 47, pero para la lista Y.
-            target = float(self.entry_target.get())  # Convierte el valor de búsqueda en número decimal.
+        # ===== SALIDAS =====
 
-            if self.switch_inv.get():  # Revisa si el usuario activó la inversión de variables.
-                x_data, y_data = val_b, val_a  # Intercambia los arreglos de datos.
-                lbl_x, lbl_y = "Y", "X"  # Cambia los nombres de los ejes para la gráfica.
-            else:  # Si el interruptor está apagado.
-                x_data, y_data = val_a, val_b  # Mantiene el orden original de los datos.
-                lbl_x, lbl_y = "X", "Y"  # Mantiene los nombres de ejes estándar.
+        self.result_label = ctk.CTkLabel(self, text="Resultado:", font=("Arial", 16, "bold"))
+        self.result_label.pack(pady=10)
 
-            idx = np.argsort(x_data)  # Obtiene los índices necesarios para ordenar X de menor a mayor.
-            x_data, y_data = x_data[idx], y_data[idx]  # Reordena ambos arreglos basándose en el orden de X.
+        self.error_label = ctk.CTkLabel(self, text="", font=("Arial", 12))  # Error porcentual.
+        self.error_label.pack(pady=5)
 
-            tipo = self.menu_op.get()  # Obtiene la opción seleccionada en el menú desplegable.
-            if tipo == "Lineal":  # Si se eligió el método lineal.
-                f = interp1d(x_data, y_data, kind='linear', fill_value="extrapolate")  # Crea función de interpolación de primer grado.
-            elif tipo == "Cuadrática":  # Si se eligió el método cuadrático.
-                f = interp1d(x_data, y_data, kind='quadratic', fill_value="extrapolate")  # Crea función de interpolación de segundo grado.
-            else:  # En caso de elegir "Lagrange".
-                f = lagrange(x_data, y_data)  # Genera el polinomio de Lagrange usando todos los puntos.
+        self.warning_label = ctk.CTkLabel(
+            self,
+            text="",
+            font=("Arial", 12, "bold"),
+            text_color="red"
+        )  # Advertencia de extrapolación.
+        self.warning_label.pack(pady=5)
 
-            res = f(target)  # Evalúa la función generada en el valor objetivo.
-            self.result_label.configure(text=f"Resultado: {res:.4f}")  # Actualiza la interfaz con el resultado (4 decimales).
+    def calcular(self):  # Función principal que ejecuta los cálculos.
+        try:
+            tipo = self.menu_op.get()  # Obtiene el método seleccionado.
 
-            if self.check_graficar.get():  # Revisa si la casilla de gráfica está marcada.
-                self.mostrar_grafica(x_data, y_data, f, target, res, lbl_x, lbl_y)  # Llama a la función de dibujo.
+            # Convierte texto a listas separadas por coma
+            x_str = self.entry_x.get().split(',')
+            y_str = self.entry_y.get().split(',')
 
-        except ValueError:  # Se ejecuta si el usuario ingresó letras en lugar de números.
-            messagebox.showerror("Error", "Ingresa solo números válidos.")  # Muestra alerta de formato incorrecto.
-        except Exception as e:  # Captura cualquier otro error técnico inesperado.
-            messagebox.showerror("Error", f"Detalle: {e}")  # Muestra el mensaje técnico del error.
+            # ===== VALIDACIONES =====
 
-    def mostrar_grafica(self, x, y, f, target, res, label_x, label_y):  # Define cómo dibujar la gráfica.
-        plt.figure(figsize=(6, 4))  # Crea una nueva figura de Matplotlib con tamaño específico.
-        x_range = np.linspace(x.min() - 1, x.max() + 1, 100)  # Genera 100 puntos para que la curva se vea suave.
-        plt.plot(x_range, f(x_range), label="Función", color='blue')  # Dibuja la línea de la interpolación.
-        plt.scatter(x, y, color='red', label="Datos")  # Dibuja los puntos originales como puntos rojos.
-        plt.scatter(target, res, color='green', label="Búsqueda")  # Resalta el punto calculado en verde.
-        plt.xlabel(label_x)  # Pone nombre al eje horizontal.
-        plt.ylabel(label_y)  # Pone nombre al eje vertical.
-        plt.legend()  # Muestra el cuadro de descripción de colores.
-        plt.grid(True)  # Activa la cuadrícula de fondo.
-        plt.show()  # Abre la ventana con la gráfica resultante.
+            if len(x_str) != len(y_str):  # Verifica que tengan igual tamaño.
+                messagebox.showerror("Error", "X y f(x) deben tener igual longitud.")
+                return
 
-if __name__ == "__main__":  # Verifica que el script se esté ejecutando directamente.
-    app = App()  # Crea la instancia de la aplicación.
-    app.mainloop()  # Inicia el ciclo de eventos para mantener la ventana abierta.
+            if len(x_str) < 2:  # Se requieren al menos 2 puntos.
+                messagebox.showerror("Error", "Se necesitan al menos 2 puntos.")
+                return
+
+            # Convierte a números
+            x_data = np.array([float(i) for i in x_str])
+            y_data = np.array([float(i) for i in y_str])
+            target = float(self.entry_target.get())
+
+            # ===== INTERPOLACIÓN INVERSA =====
+
+            if self.switch_inv.get():
+                x_data, y_data = y_data, x_data  # Intercambia datos.
+                lbl_x, lbl_y = "Y", "X"
+            else:
+                lbl_x, lbl_y = "X", "Y"
+
+            # Ordena los datos
+            idx = np.argsort(x_data)
+            x_data = x_data[idx]
+            y_data = y_data[idx]
+
+            # ===== DETECCIÓN DE EXTRAPOLACIÓN =====
+
+            if target < x_data.min() or target > x_data.max():
+                self.warning_label.configure(text="⚠ Advertencia: Extrapolación")
+            else:
+                self.warning_label.configure(text="")
+
+            # ===== SELECCIÓN DE PUNTOS MÁS CERCANOS =====
+
+            distancias = np.abs(x_data - target)  # Distancia al target.
+            indices = np.argsort(distancias)  # Ordena de menor a mayor.
+
+            # ===== MÉTODOS =====
+
+            if tipo == "Lineal":
+                f = interp1d(x_data, y_data, kind='linear', fill_value="extrapolate")
+
+            elif tipo == "Cuadrática":
+                if len(x_data) < 3:
+                    messagebox.showerror("Error", "Se necesitan al menos 3 puntos.")
+                    return
+                f = interp1d(x_data, y_data, kind='quadratic', fill_value="extrapolate")
+
+            elif tipo == "Lagrange 1er grado":
+                puntos = indices[:2]  # Selecciona 2 puntos más cercanos.
+                f = lagrange(x_data[puntos], y_data[puntos])
+
+            elif tipo == "Lagrange 2do grado":
+                if len(x_data) < 3:
+                    messagebox.showerror("Error", "Se necesitan al menos 3 puntos.")
+                    return
+                puntos = indices[:3]  # Selecciona 3 puntos más cercanos.
+                f = lagrange(x_data[puntos], y_data[puntos])
+
+            # ===== RESULTADO =====
+
+            resultado = f(target)
+            self.result_label.configure(text=f"Resultado: {resultado:.4f}")
+
+            # ===== ERROR PORCENTUAL =====
+
+            valor_exacto = self.entry_exact.get()
+            if valor_exacto:
+                valor_exacto = float(valor_exacto)
+                error = abs((valor_exacto - resultado) / valor_exacto) * 100
+                self.error_label.configure(text=f"Error: {error:.2f}%")
+            else:
+                self.error_label.configure(text="")
+
+            # ===== GRÁFICA =====
+
+            if self.check_graficar.get():
+                self.mostrar_grafica(x_data, y_data, f, target, resultado, lbl_x, lbl_y)
+
+        except ValueError:
+            messagebox.showerror("Error", "Ingresa solo números válidos.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Detalle: {e}")
+
+    def mostrar_grafica(self, x, y, f, target, resultado, label_x, label_y):
+        plt.figure(figsize=(6, 4))  # Crea figura.
+
+        x_range = np.linspace(x.min() - 1, x.max() + 1, 100)  # Rango para graficar.
+
+        plt.plot(x_range, f(x_range), label="Interpolación")  # Curva.
+        plt.scatter(x, y, label="Datos")  # Puntos originales.
+        plt.scatter(target, resultado, label="Resultado")  # Punto calculado.
+
+        plt.xlabel(label_x)
+        plt.ylabel(label_y)
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+
+if __name__ == "__main__":
+    app = App()  # Crea la app.
+    app.mainloop()  # Ejecuta la interfaz.
