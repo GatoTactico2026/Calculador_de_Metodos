@@ -9,8 +9,8 @@ ctk.set_appearance_mode("System")  # Ajusta el tema visual automáticamente.
 class App(ctk.CTk):  # Clase principal de la aplicación.
     def __init__(self):  # Constructor de la ventana.
         super().__init__()
-        self.title("Calculadora de Interpolación")  # Título de la ventana.
-        self.geometry("420x700")  # Tamaño de la ventana.
+        self.title("Calculadora de Interpolación")  
+        self.geometry("420x700")  
 
         # ===== ENTRADAS =====
 
@@ -19,7 +19,7 @@ class App(ctk.CTk):  # Clase principal de la aplicación.
         self.entry_x.pack()
 
         ctk.CTkLabel(self, text="Valores de f(x) (separados por ,):").pack(pady=5)
-        self.entry_y = ctk.CTkEntry(self, width=250)  # Entrada para valores Y.
+        self.entry_y = ctk.CTkEntry(self, width=250)  # Entrada para valores f(x).
         self.entry_y.pack()
 
         ctk.CTkLabel(self, text="Valor a buscar:").pack(pady=5)
